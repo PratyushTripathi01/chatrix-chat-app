@@ -3,6 +3,49 @@ import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
 
+// --- message sound helper ---
+let dingAudio = null;
+let dingPrimed = false;
+
+function pickSoundSrc() {
+  if (typeof document !== 'undefined') {
+    const test = document.createElement('audio');
+    if (test.canPlayType && test.canPlayType('audio/ogg; codecs="vorbis"')) {
+      return '/sounds/notify.ogg';
+    }
+  }
+  return '/sounds/notify.mp3';
+}
+
+function initDing() {
+  if (typeof window === 'undefined' || dingAudio) return;
+  dingAudio = new Audio(pickSoundSrc());
+  dingAudio.preload = 'auto';
+  dingAudio.volume = 0.85;
+
+  const prime = async () => {
+    if (!dingAudio || dingPrimed) return;
+    try {
+      await dingAudio.play();
+      dingAudio.pause();
+      dingAudio.currentTime = 0;
+      dingPrimed = true;
+    } catch {
+      // Will succeed after a user gesture
+    }
+  };
+
+  // Autoplay unlock after first click/tap
+  window.addEventListener('pointerdown', prime, { once: true, passive: true });
+}
+
+function playDing() {
+  if (!dingAudio) return;
+  dingAudio.currentTime = 0;
+  dingAudio.play().catch(() => {});
+}
+// --- end helper ---
+
 export const useChatStore = create((set, get) => ({
   messages: [],
   users: [],
@@ -49,6 +92,9 @@ export const useChatStore = create((set, get) => ({
 
     const socket = useAuthStore.getState().socket;
 
+    // Ensure audio is ready (sets up priming on first user interaction)
+    initDing();
+
     socket.on("newMessage", (newMessage) => {
       const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
       if (!isMessageSentFromSelectedUser) return;
@@ -56,6 +102,9 @@ export const useChatStore = create((set, get) => ({
       set({
         messages: [...get().messages, newMessage],
       });
+
+      // Ring for this case only
+      playDing();
     });
   },
 
