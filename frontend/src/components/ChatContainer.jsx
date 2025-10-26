@@ -17,6 +17,7 @@ const ChatContainer = () => {
     unsubscribeFromMessages,
   } = useChatStore();
   const { authUser } = useAuthStore();
+  
   const messageEndRef = useRef(null);
 
   useEffect(() => {
@@ -66,8 +67,8 @@ const ChatContainer = () => {
                   <img
                     src={
                       message.senderId === authUser._id
-                        ? authUser.profilePic || "avatar.webp"
-                        : selectedUser.profilePic || "avatar.webp"
+                        ? authUser?.profilePic || "/avatar.png"
+                        : selectedUser.profilePic || "/avatar.png"
                     }
                     alt="Profile Pic"
                     className="object-cover"
